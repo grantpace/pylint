@@ -139,8 +139,11 @@ def _count_boolean_expressions(bool_op):
     return nb_bool_expr
 
 
-def _count_methods_in_class(node):
-    all_methods = sum(1 for method in node.methods() if not method.name.startswith("_"))
+def _count_methods_in_class(node, private_names):
+    all_methods = sum(
+        1 for method in node.methods()
+        if not private_names.match(method.name))
+
     # Special methods count towards the number of public methods,
     # but don't count towards there being too many methods.
     for method in node.mymethods():
@@ -283,6 +286,10 @@ class MisdesignChecker(BaseChecker):
     def _ignored_argument_names(self):
         return utils.get_global_option(self, "ignored-argument-names", default=None)
 
+    @decorators.cachedproperty
+    def _private_names(self):
+        return utils.get_global_option(self, "private-names", default=None)
+
     @check_messages(
         "too-many-ancestors",
         "too-many-instance-attributes",
@@ -310,9 +317,11 @@ class MisdesignChecker(BaseChecker):
     @check_messages("too-few-public-methods", "too-many-public-methods")
     def leave_classdef(self, node):
         """check number of public methods"""
+        private_names = self._private_names
+
         my_methods = sum(
-            1 for method in node.mymethods() if not method.name.startswith("_")
-        )
+            1 for method in node.mymethods()
+            if not private_names.match(method.name))
 
         # Does the class contain less than n public methods ?
         # This checks only the methods defined in the current class,
@@ -336,7 +345,8 @@ class MisdesignChecker(BaseChecker):
         # Does the class contain more than n public methods ?
         # This checks all the methods defined by ancestors and
         # by the current class.
-        all_methods = _count_methods_in_class(node)
+        private_names = self._private_names
+        all_methods = _count_methods_in_class(node, private_names)
         if all_methods < self.config.min_public_methods:
             self.add_message(
                 "too-few-public-methods",

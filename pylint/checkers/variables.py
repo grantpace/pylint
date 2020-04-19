@@ -646,6 +646,16 @@ class VariablesChecker(BaseChecker):
             },
         ),
         (
+            "private-names",
+            {
+                "default": "_.+[^_]",
+                "type": "regexp",
+                "metavar": "<regexp>",
+                "help": "Class members that match this regex will be "
+                "considered 'private'."
+            },
+        ),
+        (
             "allow-global-unused-variables",
             {
                 "default": True,
